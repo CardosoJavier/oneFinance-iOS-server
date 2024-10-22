@@ -6,11 +6,11 @@ from flask import jsonify
 
 class TellerService():
 
-    def __init__(self, access_token=None):
-        self._baseLink: str = "https://api.teller.io"
-        self._cert: tuple = (os.getenv("CERT_PATH"), os.getenv("KEY_PATH"))
+    def __init__(self, baseLink = "https://api.teller.io", cert = None, access_token=None):
+        self._baseLink: str = baseLink
+        self._cert: tuple = cert if cert else (os.getenv("CERT_PATH"), os.getenv("KEY_PATH"))
         self._access_token: str = access_token
-        self._auth: HTTPBasicAuth
+        self._auth: HTTPBasicAuth = HTTPBasicAuth(self._access_token, "") if self._access_token else None
     
     """
         Store access token once Teller Connect generates it
@@ -24,37 +24,56 @@ class TellerService():
     """
         Fetch accounts from Teller API
     """
-    def fetchAccounts(self):
+    def fetchAccounts(self) -> dict:
         try:
-            accounts = requests.get(f"{self._baseLink}/accounts", auth=self._auth, cert=self._cert)
+            accountsRequest = requests.get(f"{self._baseLink}/accounts", auth=self._auth, cert=self._cert, timeout=10)
+
+            accountsRequest.raise_for_status()            
+            logging.info("Success fetching accounts")
+
+            # TODO: Normalize request body to expected account response
+            return accountsRequest.json()
             
-            if accounts.status_code == 200:
-                logging.info("Accounts data successfully retrieved.")
-                return accounts.json()
-            
+        except requests.exceptions.HTTPError as e:
+            logging.critical(f"Http error while fetching accounts: {e}", exc_info=True)
+
+        except requests.exceptions.ConnectionError as e:
+            logging.error(f"Connection error while fetching accounts: {e}", exc_info=True)
+
+        except requests.exceptions.Timeout as e:
+            logging.error(f"Timeout error while fetching accounts: {e}", exc_info=True)
+
         except Exception as e:
-            logging.critical("Failed to get accounts")
-            logging.critical(e)
-            return {"error": "Fetching accounts failed"}
+            logging.error(f"An exception has occured while fetching accounts: {e}", exc_info=True)
+
+        return {"error": "Error fetching accounts"}
     
     """
         Fetch account balance from Teller API
         @param: account id
     """
-    def fetchAccountBalance(self, account_id):   
+    def fetchAccountBalance(self, account_id)  -> dict:   
         try:
-            balance = requests.get(f"{self._baseLink}/accounts/{account_id}/balances", auth=self._auth, cert=self._cert)
+            balanceRequest = requests.get(f"{self._baseLink}/accounts/{account_id}/balances", auth=self._auth, cert=self._cert)
 
-            if balance.status_code == 200:
-                logging.info("Success fetching account balances")
-                return balance.json()
-            
-            else:
-                logging.error(f"error code {balance.status_code}\n{balance}")
+            balanceRequest.raise_for_status()
+            logging.info("Success fetching balances")
+
+            # TODO: Normalize request body to expected balance response
+            return balanceRequest.json()
+
+        except requests.exceptions.HTTPError as e:
+            logging.critical(f"Http error while fetching balances: {e}", exc_info=True)
+
+        except requests.exceptions.ConnectionError as e:
+            logging.error(f"Connection error while fetching balances: {e}", exc_info=True)
+
+        except requests.exceptions.Timeout as e:
+            logging.error(f"Timeout error while fetching balances: {e}", exc_info=True)
 
         except Exception as e:
-            logging.error("Error fetching account id balances")
-            logging.error(e)
-            return {"error": "Fetching account balances failed"}
+            logging.error(f"An exception has occured while fetching balances: {e}", exc_info=True)
+
+        return {"error": "Error fetching balances"}
         
     
