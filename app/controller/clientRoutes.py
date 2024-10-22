@@ -36,3 +36,7 @@ def storeAccessToken():
     else:
         logging.error("Token was not in request")
         return {"status": "failed getting token"}
+
+@tellerRoutes.route("/healthz")
+def healthz():
+    return {'health': "healthy"}
