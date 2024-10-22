@@ -5,8 +5,8 @@ from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
 from app.controller.clientRoutes import tellerRoutes
-
-load_dotenv("../.env")
+from app.controller.healthRoutes import healthRoutes
+load_dotenv()
 
 def _parse_args():
     parse = argparse.ArgumentParser(description="Teller environment config")
@@ -44,6 +44,7 @@ def create_app():
 
     # routes
     app.register_blueprint(tellerRoutes)
+    app.register_blueprint(healthRoutes)
 
     # Set up app environment
     logging.info("starting oneFinance server...")
